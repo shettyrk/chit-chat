@@ -1,0 +1,128 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: messaging
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  nats:
+    image: nats:2.10-alpine
+    command: ["-js", "-m", "8222"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    environment:
+      JWT_SECRET: change-me-change-me-change-me-change-me
+      USER_SERVICE_URL: http://user-service:8081
+      CHAT_SERVICE_URL: http://chat-service:8082
+      MESSAGE_SERVICE_URL: http://message-service:8083
+      PRESENCE_SERVICE_URL: http://presence-service:8084
+    ports:
+      - "8080:8080"
+    depends_on:
+      - user-service
+      - chat-service
+      - message-service
+      - presence-service
+
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/messaging?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      JWT_SECRET: change-me-change-me-change-me-change-me
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  chat-service:
+    build:
+      context: .
+      dockerfile: chat-service/Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/messaging?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+    ports:
+      - "8082:8082"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  message-service:
+    build:
+      context: .
+      dockerfile: message-service/Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/messaging?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      NATS_URL: nats://nats:4222
+    ports:
+      - "8083:8083"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nats:
+        condition: service_started
+
+  presence-service:
+    build:
+      context: .
+      dockerfile: presence-service/Dockerfile
+    environment:
+      NATS_URL: nats://nats:4222
+      SPRING_DATA_REDIS_HOST: redis
+    ports:
+      - "8084:8084"
+    depends_on:
+      - redis
+      - nats
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    environment:
+      NATS_URL: nats://nats:4222
+    depends_on:
+      - nats
+
+  frontend:
+    build:
+      context: frontend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8080
+      VITE_WS_URL: http://localhost:8083/ws
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+
+volumes:
+  mysql-data:
+

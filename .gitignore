@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Java / Maven build output
+target/
+**/target/
+
+# Frontend / mobile build output
+dist/
+build/
+coverage/
+.expo/
+.expo-shared/
+web-build/
+
+# Runtime data and uploads
+uploads/
+*.log
+logs/
+
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+application-local.yml
+application-*.local.yml
+
+# IDE / editor files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker local overrides
+docker-compose.override.yml

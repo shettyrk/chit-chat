@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: notification-service
+app:
+  nats-url: ${NATS_URL:nats://localhost:4222}
+

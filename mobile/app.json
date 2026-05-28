@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "NATS Spring Chat",
+    "slug": "nats-spring-chat",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.natsspringchat"
+    },
+    "android": {
+      "package": "com.example.natsspringchat"
+    }
+  }
+}

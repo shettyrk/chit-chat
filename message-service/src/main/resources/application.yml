@@ -1,0 +1,17 @@
+server:
+  port: 8083
+spring:
+  application:
+    name: message-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/messaging?createDatabaseIfNotExist=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:root}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+app:
+  nats-url: ${NATS_URL:nats://localhost:4222}
+  media-dir: ${MEDIA_DIR:uploads}
+

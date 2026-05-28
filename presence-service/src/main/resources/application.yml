@@ -1,0 +1,12 @@
+server:
+  port: 8084
+spring:
+  application:
+    name: presence-service
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+app:
+  nats-url: ${NATS_URL:nats://localhost:4222}
+
