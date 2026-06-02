@@ -6,8 +6,8 @@ import { Client } from '@stomp/stompjs';
 import { Check, CheckCheck, Image, LogOut, Paperclip, Send, Users } from 'lucide-react';
 import './styles.css';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:8083/ws';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const WS_URL = import.meta.env.VITE_WS_URL || '/ws';
 const ApiContext = createContext(null);
 
 function chatIdentity(chat) {

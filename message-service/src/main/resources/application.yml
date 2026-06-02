@@ -14,4 +14,3 @@ spring:
 app:
   nats-url: ${NATS_URL:nats://localhost:4222}
   media-dir: ${MEDIA_DIR:uploads}
-
