@@ -11,6 +11,7 @@ Scalable real-time messaging scaffold using Spring Boot microservices, NATS, MyS
 - `presence-service`: online/offline and typing events through NATS.
 - `notification-service`: consumes message events and logs notification work for offline users.
 - `frontend`: React + Context API + STOMP client chat UI.
+- `mobile`: Expo React Native client for iOS and Android with local cache, STOMP live updates, groups, and media sends.
 
 ## Run
 
@@ -21,6 +22,16 @@ docker compose up -d --build
 Frontend: http://localhost:3000
 
 Gateway: http://localhost:8080
+
+Mobile:
+
+```powershell
+cd mobile
+npm install
+npm run start
+```
+
+Use `http://10.0.2.2:8080` and `ws://10.0.2.2:8083/ws/websocket` on the Android emulator. On a physical phone, replace the host with your computer LAN IP.
 
 Swagger:
 
