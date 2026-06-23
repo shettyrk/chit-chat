@@ -52,12 +52,17 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/messaging?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
+      SPRING_DATA_REDIS_HOST: redis
       JWT_SECRET: change-me-change-me-change-me-change-me
+      PHONE_DEFAULT_COUNTRY_CODE: "+91"
+      OTP_RETURN_CODE: "true"
     ports:
       - "8081:8081"
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_started
 
   chat-service:
     build:

@@ -1,13 +1,18 @@
 package com.example.messaging.message;
 
 import io.nats.client.Connection;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @RestController
@@ -17,12 +22,20 @@ public class MessageController {
     private final MessageStatusRepository statuses;
     private final Connection nats;
     private final MessageJson json;
+    private final Path mediaDir;
 
-    public MessageController(MessageRepository messages, MessageStatusRepository statuses, Connection nats, MessageJson json) {
+    public MessageController(
+            MessageRepository messages,
+            MessageStatusRepository statuses,
+            Connection nats,
+            MessageJson json,
+            @Value("${app.media-dir:uploads}") String mediaDir
+    ) {
         this.messages = messages;
         this.statuses = statuses;
         this.nats = nats;
         this.json = json;
+        this.mediaDir = Path.of(mediaDir).toAbsolutePath().normalize();
     }
 
     @PostMapping
@@ -65,10 +78,19 @@ public class MessageController {
     }
 
     @PostMapping(path = "/media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Map<String, String> upload(@RequestPart MultipartFile file) throws Exception {
-        Files.createDirectories(Path.of("uploads"));
-        String name = UUID.randomUUID() + "-" + file.getOriginalFilename();
-        Path target = Path.of("uploads", name);
+    public Map<String, String> upload(@RequestPart("file") MultipartFile file) throws Exception {
+        if (file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Uploaded file is empty");
+        }
+        Files.createDirectories(mediaDir);
+        String originalName = StringUtils.cleanPath(Objects.requireNonNullElse(file.getOriginalFilename(), "upload.bin"))
+                .replace("\\", "_")
+                .replace("/", "_");
+        String name = UUID.randomUUID() + "-" + originalName;
+        Path target = mediaDir.resolve(name).normalize();
+        if (!target.startsWith(mediaDir)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid file name");
+        }
         file.transferTo(target);
         return Map.of("url", "/api/media/" + name);
     }

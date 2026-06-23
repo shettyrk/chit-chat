@@ -7,6 +7,8 @@ app:
 spring:
   application:
     name: api-gateway
+  codec:
+    max-in-memory-size: 100MB
   cloud:
     gateway:
       globalcors:
