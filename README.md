@@ -56,8 +56,6 @@ The mobile app asks for contacts permission, reads phone numbers only, and calls
 
 ## Oracle Cloud Deployment
 
-See `DEPLOYMENT.md` for the deployment-ready Docker Compose stack, free hosting path, HTTPS setup, and mobile build steps.
-
 1. Create an OCI VCN with a public subnet for the reverse proxy and private access for app dependencies.
 2. Create an Ubuntu compute instance, install Docker and Docker Compose, and clone this repo.
 3. Point DNS to the instance or to an OCI Load Balancer.

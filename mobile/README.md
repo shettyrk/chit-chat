@@ -93,10 +93,3 @@ npx eas-cli build --platform ios --profile production
 ```
 
 Before release, update `app.json` with your real iOS bundle identifier, Android package, app icon, splash screen, and production API URLs.
-
-For CI/EAS builds, you can set default server URLs at build time:
-
-```powershell
-$env:EXPO_PUBLIC_API_BASE_URL="https://your-domain"
-$env:EXPO_PUBLIC_WS_URL="wss://your-domain/ws/websocket"
-```

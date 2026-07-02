@@ -24,10 +24,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Client } from '@stomp/stompjs';
 
-const DEFAULT_API_BASE_URL = normalizeUrl(
-  process.env.EXPO_PUBLIC_API_BASE_URL || (Platform.OS === 'android' ? 'http://10.0.2.2:8080' : 'http://localhost:8080')
-);
-const DEFAULT_WEB_SOCKET_URL = normalizeWebSocketUrl(process.env.EXPO_PUBLIC_WS_URL, DEFAULT_API_BASE_URL);
+const DEFAULT_API_BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:8080' : 'http://localhost:8080';
+const DEFAULT_WEB_SOCKET_URL = webSocketUrlFromApiBase(DEFAULT_API_BASE_URL);
 const STORAGE_KEYS = {
   apiBaseUrl: 'settings:apiBaseUrl',
   webSocketUrl: 'settings:webSocketUrl',

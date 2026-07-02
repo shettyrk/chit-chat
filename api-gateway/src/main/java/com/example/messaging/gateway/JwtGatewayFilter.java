@@ -24,8 +24,7 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
             "/api/users/register",
             "/api/users/otp/start",
             "/api/users/otp/verify",
-            "/api/media/",
-            "/ws"
+            "/api/media/"
     );
     private final SecretKey key;
 
