@@ -1,5 +1,7 @@
 server:
   port: 8081
+  error:
+    include-message: always
 spring:
   application:
     name: user-service
@@ -7,10 +9,20 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/messaging?createDatabaseIfNotExist=true}
     username: ${SPRING_DATASOURCE_USERNAME:root}
     password: ${SPRING_DATASOURCE_PASSWORD:root}
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
   jpa:
     hibernate:
       ddl-auto: update
     open-in-view: false
 app:
   jwt-secret: ${JWT_SECRET:change-me-change-me-change-me-change-me}
-
+  phone:
+    default-country-code: ${PHONE_DEFAULT_COUNTRY_CODE:+91}
+  otp:
+    ttl-seconds: ${OTP_TTL_SECONDS:300}
+    resend-seconds: ${OTP_RESEND_SECONDS:30}
+    max-attempts: ${OTP_MAX_ATTEMPTS:5}
+    return-code: ${OTP_RETURN_CODE:false}

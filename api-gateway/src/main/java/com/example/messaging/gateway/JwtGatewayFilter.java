@@ -19,7 +19,14 @@ import java.util.List;
 
 @Component
 public class JwtGatewayFilter implements GlobalFilter, Ordered {
-    private static final List<String> PUBLIC_PATHS = List.of("/api/users/login", "/api/users/register");
+    private static final List<String> PUBLIC_PATHS = List.of(
+            "/api/users/login",
+            "/api/users/register",
+            "/api/users/otp/start",
+            "/api/users/otp/verify",
+            "/api/media/",
+            "/ws"
+    );
     private final SecretKey key;
 
     public JwtGatewayFilter(@Value("${app.jwt-secret}") String secret) {

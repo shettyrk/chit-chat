@@ -7,18 +7,15 @@ app:
 spring:
   application:
     name: api-gateway
+  codec:
+    max-in-memory-size: 100MB
   cloud:
     gateway:
       globalcors:
         add-to-simple-url-handler-mapping: true
         cors-configurations:
           '[/**]':
-            allowedOriginPatterns:
-              - http://localhost:*
-              - http://127.0.0.1:*
-              - http://192.168.*:*
-              - http://172.*:*
-              - http://10.*:*
+            allowedOriginPatterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*,http://192.168.*:*,http://172.*:*,http://10.*:*}
             allowedMethods:
               - GET
               - POST
@@ -45,6 +42,10 @@ spring:
           uri: ${MESSAGE_SERVICE_URL:http://localhost:8083}
           predicates:
             - Path=/api/messages/**,/api/media/**
+        - id: websocket-service
+          uri: ${MESSAGE_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/ws/**
         - id: presence-service
           uri: ${PRESENCE_SERVICE_URL:http://localhost:8084}
           predicates:

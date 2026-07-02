@@ -1,43 +1,39 @@
 services:
   mysql:
     image: mysql:8.4
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: messaging
-    ports:
-      - "3306:3306"
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-messaging}
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 10
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
 
   nats:
     image: nats:2.10-alpine
+    restart: unless-stopped
     command: ["-js", "-m", "8222"]
-    ports:
-      - "4222:4222"
-      - "8222:8222"
 
   api-gateway:
     build:
       context: .
       dockerfile: api-gateway/Dockerfile
+    restart: unless-stopped
     environment:
-      JWT_SECRET: change-me-change-me-change-me-change-me
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      CORS_ALLOWED_ORIGIN_PATTERNS: ${CORS_ALLOWED_ORIGIN_PATTERNS:-https://your-domain.example}
       USER_SERVICE_URL: http://user-service:8081
       CHAT_SERVICE_URL: http://chat-service:8082
       MESSAGE_SERVICE_URL: http://message-service:8083
       PRESENCE_SERVICE_URL: http://presence-service:8084
-    ports:
-      - "8080:8080"
     depends_on:
       - user-service
       - chat-service
@@ -48,16 +44,15 @@ services:
     build:
       context: .
       dockerfile: user-service/Dockerfile
+    restart: unless-stopped
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/messaging?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-messaging}?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
       SPRING_DATA_REDIS_HOST: redis
-      JWT_SECRET: change-me-change-me-change-me-change-me
-      PHONE_DEFAULT_COUNTRY_CODE: "+91"
-      OTP_RETURN_CODE: "true"
-    ports:
-      - "8081:8081"
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      PHONE_DEFAULT_COUNTRY_CODE: ${PHONE_DEFAULT_COUNTRY_CODE:-+91}
+      OTP_RETURN_CODE: ${OTP_RETURN_CODE:-false}
     depends_on:
       mysql:
         condition: service_healthy
@@ -68,12 +63,11 @@ services:
     build:
       context: .
       dockerfile: chat-service/Dockerfile
+    restart: unless-stopped
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/messaging?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-messaging}?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
-    ports:
-      - "8082:8082"
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
     depends_on:
       mysql:
         condition: service_healthy
@@ -82,13 +76,15 @@ services:
     build:
       context: .
       dockerfile: message-service/Dockerfile
+    restart: unless-stopped
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/messaging?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-messaging}?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
       NATS_URL: nats://nats:4222
-    ports:
-      - "8083:8083"
+      MEDIA_DIR: /app/uploads
+    volumes:
+      - media-uploads:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -99,11 +95,10 @@ services:
     build:
       context: .
       dockerfile: presence-service/Dockerfile
+    restart: unless-stopped
     environment:
       NATS_URL: nats://nats:4222
       SPRING_DATA_REDIS_HOST: redis
-    ports:
-      - "8084:8084"
     depends_on:
       - redis
       - nats
@@ -112,6 +107,7 @@ services:
     build:
       context: .
       dockerfile: notification-service/Dockerfile
+    restart: unless-stopped
     environment:
       NATS_URL: nats://nats:4222
     depends_on:
@@ -120,10 +116,27 @@ services:
   frontend:
     build:
       context: frontend
-    ports:
-      - "3000:80"
+    restart: unless-stopped
     depends_on:
       - api-gateway
 
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    environment:
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-:80}
+    ports:
+      - "${PUBLIC_HTTP_PORT:-80}:80"
+      - "${PUBLIC_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - frontend
+
 volumes:
+  caddy-config:
+  caddy-data:
   mysql-data:
+  media-uploads:

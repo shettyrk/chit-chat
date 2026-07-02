@@ -1,17 +1,30 @@
 {
   "expo": {
-    "name": "NATS Spring Chat",
-    "slug": "nats-spring-chat",
+    "name": "Chit Chat",
+    "slug": "chit-chat",
     "version": "0.0.1",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.natsspringchat"
+      "bundleIdentifier": "com.example.natsspringchat",
+      "infoPlist": {
+        "NSContactsUsageDescription": "Chit Chat uses your contacts to find people who already use the app."
+      }
     },
     "android": {
-      "package": "com.example.natsspringchat"
-    }
+      "package": "com.example.natsspringchat",
+      "permissions": [
+        "READ_CONTACTS"
+      ]
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-contacts",
+      "expo-font"
+    ]
   }
 }

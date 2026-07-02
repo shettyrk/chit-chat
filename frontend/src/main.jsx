@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import axios from 'axios';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
-import { Check, CheckCheck, Image, LogOut, Paperclip, Send, Users } from 'lucide-react';
+import { Check, CheckCheck, Image, LogOut, MessageCircle, Paperclip, Search, Send, Users } from 'lucide-react';
 import './styles.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -25,6 +25,21 @@ function dedupeChats(chats) {
   return [...byIdentity.values()].sort((a, b) => b.id - a.id);
 }
 
+function initialsForName(name = '') {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const initials = parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : parts[0]?.slice(0, 2);
+  return (initials || 'CC').toUpperCase();
+}
+
+function Avatar({ label, status, group = false }) {
+  return (
+    <span className={`avatar ${group ? 'group' : ''}`}>
+      {group ? '#' : initialsForName(label)}
+      {!group && status && <i className={status === 'ONLINE' ? 'online' : ''} />}
+    </span>
+  );
+}
+
 function ApiProvider({ children }) {
   const [session, setSession] = useState(() => {
     const raw = localStorage.getItem('session');
@@ -40,15 +55,15 @@ function ApiProvider({ children }) {
     return client;
   }, [session]);
 
-  const login = async (phone, password) => {
-    const { data } = await axios.post(`${API_BASE_URL}/api/users/login`, { phone, password });
-    localStorage.setItem('session', JSON.stringify(data));
-    setSession(data);
+  const startOtp = async (phone) => {
+    const { data } = await axios.post(`${API_BASE_URL}/api/users/otp/start`, { phone });
+    return data;
   };
 
-  const register = async (name, phone, password) => {
-    await axios.post(`${API_BASE_URL}/api/users/register`, { name, phone, password });
-    await login(phone, password);
+  const verifyOtp = async (phone, code, name) => {
+    const { data } = await axios.post(`${API_BASE_URL}/api/users/otp/verify`, { phone, code, name });
+    localStorage.setItem('session', JSON.stringify(data));
+    setSession(data);
   };
 
   const logout = () => {
@@ -56,7 +71,7 @@ function ApiProvider({ children }) {
     setSession(null);
   };
 
-  return <ApiContext.Provider value={{ api, session, login, register, logout }}>{children}</ApiContext.Provider>;
+  return <ApiContext.Provider value={{ api, session, startOtp, verifyOtp, logout }}>{children}</ApiContext.Provider>;
 }
 
 function useApi() {
@@ -64,37 +79,49 @@ function useApi() {
 }
 
 function AuthScreen() {
-  const { login, register } = useApi();
-  const [mode, setMode] = useState('login');
-  const [form, setForm] = useState({ name: '', phone: '', password: '' });
+  const { startOtp, verifyOtp } = useApi();
+  const [form, setForm] = useState({ name: '', phone: '', code: '' });
+  const [otpSent, setOtpSent] = useState(false);
+  const [devCode, setDevCode] = useState('');
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const submit = async (event) => {
     event.preventDefault();
     setError('');
+    setBusy(true);
     try {
-      if (mode === 'login') await login(form.phone, form.password);
-      else await register(form.name, form.phone, form.password);
-    } catch {
-      setError('Authentication failed');
+      if (otpSent) {
+        await verifyOtp(form.phone, form.code, form.name);
+      } else {
+        const result = await startOtp(form.phone);
+        setForm((current) => ({ ...current, phone: result.phone || current.phone }));
+        setDevCode(result.devCode || '');
+        setOtpSent(true);
+      }
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Authentication failed');
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
     <main className="auth-screen">
       <form className="auth-panel" onSubmit={submit}>
-        <h1>NATS Chat</h1>
-        <div className="segmented">
-          <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>Login</button>
-          <button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => setMode('register')}>Register</button>
-        </div>
-        {mode === 'register' && (
+        <div className="brand-mark">CC</div>
+        <h1>Chit Chat</h1>
+        <input placeholder="Phone, e.g. +919876543210" value={form.phone} disabled={otpSent} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+        {otpSent && (
+          <input placeholder="SMS code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
+        )}
+        {otpSent && (
           <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         )}
-        <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-        <input placeholder="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+        {devCode && <p className="dev-code">Development code: {devCode}</p>}
         {error && <p className="error">{error}</p>}
-        <button className="primary" type="submit">{mode === 'login' ? 'Login' : 'Create Account'}</button>
+        <button className="primary" type="submit" disabled={busy}>{busy ? 'Please wait' : otpSent ? 'Verify code' : 'Send code'}</button>
+        {otpSent && <button className="secondary" type="button" onClick={() => { setOtpSent(false); setDevCode(''); setForm({ ...form, code: '' }); }}>Change number</button>}
       </form>
     </main>
   );
@@ -108,6 +135,7 @@ function ChatApp() {
   const [messages, setMessages] = useState([]);
   const [presenceByUser, setPresenceByUser] = useState({});
   const [typing, setTyping] = useState(null);
+  const [query, setQuery] = useState('');
   const stompRef = useRef(null);
   const activeChatRef = useRef(null);
   const knownChatIdsRef = useRef(new Set());
@@ -237,32 +265,54 @@ function ChatApp() {
     openChat(data);
   };
 
+  const searchText = query.trim().toLowerCase();
+  const visibleChats = dedupeChats(chats).filter((chat) => {
+    if (!searchText) return true;
+    return `${chatTitle(chat)} ${chatSubtitle(chat)}`.toLowerCase().includes(searchText);
+  });
+  const visibleUsers = users.filter((user) => {
+    if (!searchText) return true;
+    return `${user.name} ${user.phone || ''} ${presenceByUser[user.id] || ''}`.toLowerCase().includes(searchText);
+  });
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
         <div className="profile-row">
+          <Avatar label={session.user.name} status="ONLINE" />
           <div>
             <strong>{session.user.name}</strong>
             <span>Online</span>
           </div>
           <button className="icon-button" onClick={logout} title="Logout"><LogOut size={18} /></button>
         </div>
+        <label className="search-box">
+          <Search size={17} />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chats or people" />
+        </label>
         <button className="group-button" onClick={createGroup}><Users size={17} /> New group</button>
         <section>
           <h2>Chats</h2>
-          {dedupeChats(chats).map((chat) => (
+          {visibleChats.map((chat) => (
             <button key={chat.id} className={`chat-row ${activeChat?.id === chat.id ? 'active' : ''}`} onClick={() => openChat(chat)}>
-              <span>{chatTitle(chat)}</span>
-              <small>{chatSubtitle(chat)}</small>
+              <Avatar label={chatTitle(chat)} status={chat.type === 'GROUP' ? null : chatSubtitle(chat)} group={chat.type === 'GROUP'} />
+              <span>
+                <strong>{chatTitle(chat)}</strong>
+                <small>{chatSubtitle(chat)}</small>
+              </span>
             </button>
           ))}
         </section>
         <section>
           <h2>People</h2>
-          {users.map((user) => (
+          {visibleUsers.map((user) => (
             <button key={user.id} className="chat-row" onClick={() => createPrivateChat(user.id)}>
-              <span>{user.name}</span>
-              <small>{presenceByUser[user.id] || 'OFFLINE'}</small>
+              <Avatar label={user.name} status={presenceByUser[user.id] || 'OFFLINE'} />
+              <span>
+                <strong>{user.name}</strong>
+                <small>{presenceByUser[user.id] || 'OFFLINE'}</small>
+              </span>
+              <MessageCircle size={17} />
             </button>
           ))}
         </section>
@@ -329,6 +379,7 @@ function ChatWindow({ chat, messages, typing, users, presenceByUser, onSent }) {
   return (
     <section className="chat-window">
       <header className="chat-header">
+        <Avatar label={title} status={chat.type === 'PRIVATE' ? subtitle : null} group={chat.type === 'GROUP'} />
         <div>
           <strong>{title}</strong>
           <span>{subtitle}</span>

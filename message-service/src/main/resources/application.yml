@@ -3,6 +3,10 @@ server:
 spring:
   application:
     name: message-service
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/messaging?createDatabaseIfNotExist=true}
     username: ${SPRING_DATASOURCE_USERNAME:root}

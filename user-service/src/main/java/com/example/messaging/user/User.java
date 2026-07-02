@@ -15,6 +15,7 @@ public class User {
     private String passwordHash;
     private String status = "OFFLINE";
     private String avatarUrl;
+    private boolean phoneVerified;
     private Instant createdAt = Instant.now();
 
     public Long getId() { return id; }
@@ -28,6 +29,7 @@ public class User {
     public void setStatus(String status) { this.status = status; }
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+    public boolean isPhoneVerified() { return phoneVerified; }
+    public void setPhoneVerified(boolean phoneVerified) { this.phoneVerified = phoneVerified; }
     public Instant getCreatedAt() { return createdAt; }
 }
-
